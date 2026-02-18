@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Focus Timer</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #e94560;
+            --bg-dark: #1a1a2e;
+            --bg-light: #16213e;
+            --text: #ffffff;
+            --text-dim: rgba(255,255,255,0.6);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark), var(--bg-light));
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .timer-circle {
+            width: 280px;
+            height: 280px;
+            position: relative;
+            margin-bottom: 40px;
+        }
+        
+        .timer-circle svg {
+            transform: rotate(-90deg);
+            width: 100%;
+            height: 100%;
+        }
+        
+        .timer-circle .bg {
+            stroke: rgba(255,255,255,0.1);
+            fill: none;
+            stroke-width: 12;
+        }
+        
+        .timer-circle .progress {
+            stroke: var(--primary);
+            fill: none;
+            stroke-width: 12;
+            stroke-linecap: round;
+            stroke-dasharray: 754;
+            stroke-dashoffset: 0;
+            transition: stroke-dashoffset 1s linear;
+        }
+        
+        .timer-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        
+        .time {
+            font-size: 56px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -2px;
+        }
+        
+        .status {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            color: var(--primary);
+            text-transform: uppercase;
+            margin-top: 8px;
+        }
+        
+        .status.ready {
+            color: var(--text-dim);
+        }
+        
+        .presets {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            width: 100%;
+            max-width: 320px;
+            margin-bottom: 30px;
+        }
+        
+        .preset-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: var(--text);
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .preset-btn:active {
+            background: rgba(255,255,255,0.2);
+            transform: scale(0.98);
+        }
+        
+        .controls {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+        
+        .control-btn {
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .btn-stop {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            color: var(--text);
+        }
+        
+        .btn-play {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: var(--text);
+            font-size: 28px;
+        }
+        
+        .stats {
+            display: flex;
+            gap: 24px;
+            margin-top: 40px;
+            padding: 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-top: 4px;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            animation: slideDown 0.3s ease;
+            z-index: 100;
+        }
+        
+        @keyframes slideDown {
+            from { transform: translateX(-50%) translateY(-100%); opacity: 0; }
+            to { transform: translateX(-50%) translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="notification hidden" id="notification">Focus Complete! 🎉</div>
+    
+    <div class="container">
+        <div class="timer-circle">
+            <svg viewBox="0 0 260 260">
+                <circle class="bg" cx="130" cy="130" r="120"></circle>
+                <circle class="progress" id="progress" cx="130" cy="130" r="120"></circle>
+            </svg>
+            <div class="timer-display">
+                <div class="time" id="timeDisplay">25:00</div>
+                <div class="status ready" id="status">READY</div>
+            </div>
+        </div>
+        
+        <div id="presets" class="presets">
+            <button class="preset-btn" data-minutes="15">15 min</button>
+            <button class="preset-btn" data-minutes="25">25 min</button>
+            <button class="preset-btn" data-minutes="45">45 min</button>
+            <button class="preset-btn" data-minutes="60">60 min</button>
+        </div>
+        
+        <div class="controls hidden" id="controls">
+            <button class="control-btn btn-stop" id="stopBtn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="6" y="6" width="12" height="12" rx="2"/>
+                </svg>
+            </button>
+            <button class="control-btn btn-play" id="playPauseBtn">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" id="playIcon">
+                    <polygon points="6,4 20,12 6,20"/>
+                </svg>
+            </button>
+        </div>
+        
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-value" id="totalTime">0h</div>
+                <div class="stat-label">Total Focus</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="totalSessions">0</div>
+                <div class="stat-label">Sessions</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="streak">0</div>
+                <div class="stat-label">Day Streak</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Timer State
+        let timer = null;
+        let remainingSeconds = 25 * 60;
+        let totalSeconds = 25 * 60;
+        let isRunning = false;
+        let isPaused = false;
+        
+        // Stats (stored in localStorage)
+        let stats = JSON.parse(localStorage.getItem('focusTimerStats') || '{"totalSeconds":0,"sessions":0,"streak":0,"lastDate":null}');
+        
+        // DOM Elements
+        const timeDisplay = document.getElementById('timeDisplay');
+        const status = document.getElementById('status');
+        const progress = document.getElementById('progress');
+        const presets = document.getElementById('presets');
+        const controls = document.getElementById('controls');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const playIcon = document.getElementById('playIcon');
+        const notification = document.getElementById('notification');
+        
+        // Stats Elements
+        const totalTimeEl = document.getElementById('totalTime');
+        const totalSessionsEl = document.getElementById('totalSessions');
+        const streakEl = document.getElementById('streak');
+        
+        // Update stats display
+        function updateStatsDisplay() {
+            const hours = Math.floor(stats.totalSeconds / 3600);
+            const minutes = Math.floor((stats.totalSeconds % 3600) / 60);
+            totalTimeEl.textContent = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+            totalSessionsEl.textContent = stats.sessions;
+            streakEl.textContent = stats.streak;
+        }
+        
+        // Format time
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        // Update progress circle
+        function updateProgress() {
+            const circumference = 2 * Math.PI * 120;
+            const offset = circumference * (1 - remainingSeconds / totalSeconds);
+            progress.style.strokeDashoffset = offset;
+        }
+        
+        // Update display
+        function updateDisplay() {
+            timeDisplay.textContent = formatTime(remainingSeconds);
+            updateProgress();
+        }
+        
+        // Start timer
+        function startTimer(minutes) {
+            totalSeconds = minutes * 60;
+            remainingSeconds = totalSeconds;
+            isRunning = true;
+            isPaused = false;
+            
+            presets.classList.add('hidden');
+            controls.classList.remove('hidden');
+            status.classList.remove('ready');
+            status.textContent = 'FOCUSING';
+            
+            updateDisplay();
+            runTimer();
+        }
+        
+        // Run timer
+        function runTimer() {
+            timer = setInterval(() => {
+                if (!isPaused) {
+                    remainingSeconds--;
+                    updateDisplay();
+                    
+                    if (remainingSeconds <= 0) {
+                        completeTimer();
+                    }
+                }
+            }, 1000);
+        }
+        
+        // Toggle pause
+        function togglePause() {
+            isPaused = !isPaused;
+            
+            if (isPaused) {
+                status.textContent = 'PAUSED';
+                playIcon.innerHTML = '<polygon points="6,4 20,12 6,20"/>';
+            } else {
+                status.textContent = 'FOCUSING';
+                playIcon.innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+            }
+        }
+        
+        // Stop timer
+        function stopTimer() {
+            clearInterval(timer);
+            timer = null;
+            isRunning = false;
+            isPaused = false;
+            
+            remainingSeconds = totalSeconds;
+            
+            presets.classList.remove('hidden');
+            controls.classList.add('hidden');
+            status.classList.add('ready');
+            status.textContent = 'READY';
+            
+            playIcon.innerHTML = '<polygon points="6,4 20,12 6,20"/>';
+            updateDisplay();
+        }
+        
+        // Complete timer
+        function completeTimer() {
+            clearInterval(timer);
+            timer = null;
+            
+            // Update stats
+            stats.totalSeconds += totalSeconds;
+            stats.sessions++;
+            
+            // Update streak
+            const today = new Date().toDateString();
+            if (stats.lastDate !== today) {
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                if (stats.lastDate === yesterday.toDateString()) {
+                    stats.streak++;
+                } else if (stats.lastDate !== today) {
+                    stats.streak = 1;
+                }
+                stats.lastDate = today;
+            }
+            
+            localStorage.setItem('focusTimerStats', JSON.stringify(stats));
+            updateStatsDisplay();
+            
+            // Show notification
+            notification.classList.remove('hidden');
+            setTimeout(() => notification.classList.add('hidden'), 3000);
+            
+            stopTimer();
+        }
+        
+        // Event listeners
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const minutes = parseInt(btn.dataset.minutes);
+                startTimer(minutes);
+            });
+        });
+        
+        playPauseBtn.addEventListener('click', () => {
+            if (isRunning) {
+                togglePause();
+            }
+        });
+        
+        stopBtn.addEventListener('click', stopTimer);
+        
+        // Initialize
+        updateStatsDisplay();
+        
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(console.error);
+        }
+    </script>
+</body>
+</html>
