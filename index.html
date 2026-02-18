@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#1a1a2e">
+    <meta name="theme-color" content="#0f0f23">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Focus Timer</title>
@@ -17,15 +17,16 @@
         
         :root {
             --primary: #e94560;
-            --bg-dark: #1a1a2e;
-            --bg-light: #16213e;
+            --primary-light: #ff6b6b;
+            --bg-dark: #0f0f23;
+            --bg-light: #1a1a3e;
             --text: #ffffff;
             --text-dim: rgba(255,255,255,0.6);
         }
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, var(--bg-dark), var(--bg-light));
+            background: linear-gradient(135deg, var(--bg-dark), var(--bg-light), #16213e);
             color: var(--text);
             min-height: 100vh;
             display: flex;
@@ -40,13 +41,81 @@
             align-items: center;
             justify-content: center;
             padding: 20px;
+            position: relative;
         }
         
+        /* Background effects */
+        .bg-glow {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .bg-glow-1 {
+            width: 300px;
+            height: 300px;
+            background: var(--primary);
+            opacity: 0.1;
+            top: -100px;
+            left: -100px;
+        }
+        
+        .bg-glow-2 {
+            width: 250px;
+            height: 250px;
+            background: #4a00e0;
+            opacity: 0.1;
+            bottom: 0;
+            right: -50px;
+        }
+        
+        .content {
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        /* Milestone badge */
+        .milestone {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            padding: 10px 20px;
+            border-radius: 30px;
+            margin-bottom: 20px;
+            animation: pulse 1.5s ease-in-out infinite;
+            display: none;
+        }
+        
+        .milestone.show {
+            display: flex;
+        }
+        
+        .milestone-icon {
+            font-size: 18px;
+        }
+        
+        .milestone-text {
+            font-weight: 600;
+            color: #ffd700;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        /* Timer circle */
         .timer-circle {
             width: 280px;
             height: 280px;
             position: relative;
-            margin-bottom: 40px;
+            margin-bottom: 30px;
         }
         
         .timer-circle svg {
@@ -58,21 +127,60 @@
         .timer-circle .bg {
             stroke: rgba(255,255,255,0.1);
             fill: none;
-            stroke-width: 12;
+            stroke-width: 16;
         }
         
         .timer-circle .progress {
-            stroke: var(--primary);
+            stroke: url(#progressGradient);
             fill: none;
-            stroke-width: 12;
+            stroke-width: 16;
             stroke-linecap: round;
             stroke-dasharray: 754;
             stroke-dashoffset: 0;
             transition: stroke-dashoffset 1s linear;
+            filter: drop-shadow(0 0 10px rgba(233, 69, 96, 0.5));
         }
         
         .timer-circle .progress.interrupted {
             stroke: #ff9500;
+            filter: drop-shadow(0 0 10px rgba(255, 149, 0, 0.5));
+        }
+        
+        /* Fire particles */
+        .fire-container {
+            position: absolute;
+            top: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 100px;
+            pointer-events: none;
+        }
+        
+        .fire-particle {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, #ff6b6b, transparent);
+            border-radius: 50%;
+            opacity: 0;
+        }
+        
+        .fire-particle.animate {
+            animation: fireFloat 1.5s ease-out infinite;
+        }
+        
+        @keyframes fireFloat {
+            0% {
+                transform: translateX(-50%) translateY(0) scale(1);
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateX(-50%) translateY(-60px) scale(0.3);
+                opacity: 0;
+            }
         }
         
         .timer-display {
@@ -84,19 +192,22 @@
         }
         
         .time {
-            font-size: 56px;
-            font-weight: 700;
+            font-size: 52px;
+            font-weight: 800;
             font-variant-numeric: tabular-nums;
-            letter-spacing: -2px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
         }
         
         .status {
             font-size: 12px;
             font-weight: 600;
             letter-spacing: 2px;
-            color: var(--primary);
             text-transform: uppercase;
             margin-top: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
         
         .status.ready {
@@ -107,32 +218,82 @@
             color: #ff9500;
         }
         
+        .status.focusing {
+            color: var(--primary);
+        }
+        
+        .flame-icon {
+            animation: flicker 0.5s ease-in-out infinite alternate;
+            display: none;
+        }
+        
+        .flame-icon.show {
+            display: inline;
+        }
+        
+        @keyframes flicker {
+            from { opacity: 0.5; }
+            to { opacity: 1; }
+        }
+        
+        /* Progress dots */
+        .progress-dots {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .progress-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            transition: background 0.3s;
+        }
+        
+        .progress-dot.active {
+            background: var(--primary);
+            box-shadow: 0 0 10px var(--primary);
+        }
+        
+        .progress-label {
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-top: 8px;
+        }
+        
+        /* Presets */
         .presets {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 12px;
             width: 100%;
             max-width: 320px;
-            margin-bottom: 30px;
         }
         
         .preset-btn {
-            background: rgba(255,255,255,0.1);
-            border: none;
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
             color: var(--text);
             padding: 16px;
             border-radius: 12px;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
         
         .preset-btn:active {
-            background: rgba(255,255,255,0.2);
             transform: scale(0.98);
+            background: rgba(255,255,255,0.15);
         }
         
+        /* Controls */
         .controls {
             display: flex;
             gap: 24px;
@@ -164,22 +325,26 @@
             width: 80px;
             height: 80px;
             border-radius: 50%;
-            background: var(--primary);
+            background: linear-gradient(135deg, var(--primary-light), var(--primary), #c70039);
             color: var(--text);
             font-size: 28px;
+            box-shadow: 0 10px 30px rgba(233, 69, 96, 0.4);
         }
         
         .btn-play.interrupted {
-            background: #ff9500;
+            background: linear-gradient(135deg, #ff9500, #ff6600);
+            box-shadow: 0 10px 30px rgba(255, 149, 0, 0.4);
         }
         
+        /* Stats */
         .stats {
             display: flex;
-            gap: 24px;
+            gap: 30px;
             margin-top: 40px;
-            padding: 20px;
+            padding: 20px 30px;
             background: rgba(255,255,255,0.05);
-            border-radius: 16px;
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
         }
         
         .stat {
@@ -192,93 +357,125 @@
         }
         
         .stat-label {
-            font-size: 12px;
+            font-size: 11px;
             color: var(--text-dim);
             margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: linear-gradient(135deg, var(--primary-light), var(--primary));
+            color: white;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-weight: 600;
+            box-shadow: 0 10px 30px rgba(233, 69, 96, 0.4);
+            z-index: 100;
+            transition: transform 0.3s ease;
+        }
+        
+        .notification.show {
+            transform: translateX(-50%) translateY(0);
         }
         
         .hidden {
             display: none !important;
         }
-        
-        .notification {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--primary);
-            color: white;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-weight: 500;
-            animation: slideDown 0.3s ease;
-            z-index: 100;
-        }
-        
-        .hint {
-            background: rgba(255, 149, 0, 0.2);
-            color: #ff9500;
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-size: 14px;
-            margin-bottom: 20px;
-        }
-        
-        @keyframes slideDown {
-            from { transform: translateX(-50%) translateY(-100%); opacity: 0; }
-            to { transform: translateX(-50%) translateY(0); opacity: 1; }
-        }
     </style>
 </head>
 <body>
-    <div class="notification hidden" id="notification">Focus Complete! 🎉</div>
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+    
+    <div class="notification" id="notification">🎉 Focus Complete!</div>
     
     <div class="container">
-        <div class="timer-circle">
-            <svg viewBox="0 0 260 260">
-                <circle class="bg" cx="130" cy="130" r="120"></circle>
-                <circle class="progress" id="progress" cx="130" cy="130" r="120"></circle>
-            </svg>
-            <div class="timer-display">
-                <div class="time" id="timeDisplay">25:00</div>
-                <div class="status ready" id="status">READY</div>
+        <div class="content">
+            <!-- Milestone badge -->
+            <div class="milestone" id="milestone">
+                <span class="milestone-icon" id="milestoneIcon">⭐</span>
+                <span class="milestone-text" id="milestoneText">15 Mins!</span>
             </div>
-        </div>
-        
-        <div class="hint hidden" id="hint">Tap play to resume</div>
-        
-        <div id="presets" class="presets">
-            <button class="preset-btn" data-minutes="15">15 min</button>
-            <button class="preset-btn" data-minutes="25">25 min</button>
-            <button class="preset-btn" data-minutes="45">45 min</button>
-            <button class="preset-btn" data-minutes="60">60 min</button>
-        </div>
-        
-        <div class="controls hidden" id="controls">
-            <button class="control-btn btn-stop" id="stopBtn">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                    <rect x="6" y="6" width="12" height="12" rx="2"/>
+            
+            <div class="timer-circle">
+                <svg viewBox="0 0 260 260">
+                    <defs>
+                        <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#ff6b6b"/>
+                            <stop offset="50%" style="stop-color:#e94560"/>
+                            <stop offset="100%" style="stop-color:#c70039"/>
+                        </linearGradient>
+                    </defs>
+                    <circle class="bg" cx="130" cy="130" r="120"></circle>
+                    <circle class="progress" id="progress" cx="130" cy="130" r="120"></circle>
                 </svg>
-            </button>
-            <button class="control-btn btn-play" id="playPauseBtn">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" id="playIcon">
-                    <polygon points="6,4 20,12 6,20"/>
-                </svg>
-            </button>
-        </div>
-        
-        <div class="stats">
-            <div class="stat">
-                <div class="stat-value" id="totalTime">0h</div>
-                <div class="stat-label">Total Focus</div>
+                
+                <!-- Fire particles -->
+                <div class="fire-container" id="fireContainer">
+                    <div class="fire-particle" style="left: 20%; animation-delay: 0s;"></div>
+                    <div class="fire-particle" style="left: 40%; animation-delay: 0.2s;"></div>
+                    <div class="fire-particle" style="left: 60%; animation-delay: 0.4s;"></div>
+                    <div class="fire-particle" style="left: 80%; animation-delay: 0.6s;"></div>
+                </div>
+                
+                <div class="timer-display">
+                    <div class="time" id="timeDisplay">25:00</div>
+                    <div class="status ready" id="status">
+                        <span class="flame-icon" id="flameIcon">🔥</span>
+                        <span id="statusText">READY</span>
+                    </div>
+                </div>
             </div>
-            <div class="stat">
-                <div class="stat-value" id="totalSessions">0</div>
-                <div class="stat-label">Sessions</div>
+            
+            <!-- Progress dots -->
+            <div class="progress-dots" id="progressDots">
+                <div class="progress-dot" data-minutes="15"></div>
+                <div class="progress-dot" data-minutes="30"></div>
+                <div class="progress-dot" data-minutes="45"></div>
+                <div class="progress-dot" data-minutes="60"></div>
+                <div class="progress-dot" data-minutes="90"></div>
             </div>
-            <div class="stat">
-                <div class="stat-value" id="streak">0</div>
-                <div class="stat-label">Day Streak</div>
+            <div class="progress-label" id="progressLabel"></div>
+            
+            <div id="presets" class="presets">
+                <button class="preset-btn" data-minutes="15">☕ 15 min</button>
+                <button class="preset-btn" data-minutes="25">⏱️ 25 min</button>
+                <button class="preset-btn" data-minutes="45">📚 45 min</button>
+                <button class="preset-btn" data-minutes="60">💻 60 min</button>
+            </div>
+            
+            <div class="controls hidden" id="controls">
+                <button class="control-btn btn-stop" id="stopBtn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="6" y="6" width="12" height="12" rx="2"/>
+                    </svg>
+                </button>
+                <button class="control-btn btn-play" id="playPauseBtn">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" id="playIcon">
+                        <polygon points="6,4 20,12 6,20"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-value" id="totalTime">0h</div>
+                    <div class="stat-label">Total</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="totalSessions">0</div>
+                    <div class="stat-label">Sessions</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="streak">0</div>
+                    <div class="stat-label">Streak</div>
+                </div>
             </div>
         </div>
     </div>
@@ -291,6 +488,7 @@
         let isRunning = false;
         let isPaused = false;
         let wasInterrupted = false;
+        let currentMilestone = null;
         
         // Stats (stored in localStorage)
         let stats = JSON.parse(localStorage.getItem('focusTimerStats') || '{"totalSeconds":0,"sessions":0,"streak":0,"lastDate":null}');
@@ -298,6 +496,8 @@
         // DOM Elements
         const timeDisplay = document.getElementById('timeDisplay');
         const status = document.getElementById('status');
+        const statusText = document.getElementById('statusText');
+        const flameIcon = document.getElementById('flameIcon');
         const progress = document.getElementById('progress');
         const presets = document.getElementById('presets');
         const controls = document.getElementById('controls');
@@ -305,7 +505,12 @@
         const stopBtn = document.getElementById('stopBtn');
         const playIcon = document.getElementById('playIcon');
         const notification = document.getElementById('notification');
-        const hint = document.getElementById('hint');
+        const milestone = document.getElementById('milestone');
+        const milestoneIcon = document.getElementById('milestoneIcon');
+        const milestoneText = document.getElementById('milestoneText');
+        const progressDots = document.getElementById('progressDots');
+        const progressLabel = document.getElementById('progressLabel');
+        const fireContainer = document.getElementById('fireContainer');
         
         // Stats Elements
         const totalTimeEl = document.getElementById('totalTime');
@@ -342,27 +547,78 @@
             }
         }
         
+        // Update progress dots
+        function updateProgressDots() {
+            const minutes = (totalSeconds - remainingSeconds) / 60;
+            const dots = progressDots.querySelectorAll('.progress-dot');
+            const milestones = [15, 30, 45, 60, 90];
+            
+            dots.forEach((dot, index) => {
+                if (minutes >= milestones[index]) {
+                    dot.classList.add('active');
+                } else {
+                    dot.classList.remove('active');
+                }
+            });
+            
+            // Update label
+            const percent = Math.round((minutes / totalSeconds) * 100);
+            progressLabel.textContent = `${percent}% complete`;
+        }
+        
+        // Check for milestone
+        function checkMilestone() {
+            const minutes = (totalSeconds - remainingSeconds) / 60;
+            let newMilestone = null;
+            
+            if (minutes >= 120) {
+                newMilestone = { name: "2 Hours!", icon: "🔥" };
+            } else if (minutes >= 60) {
+                newMilestone = { name: "1 Hour!", icon: "⭐" };
+            } else if (minutes >= 45) {
+                newMilestone = { name: "45 Mins!", icon: "✨" };
+            } else if (minutes >= 30) {
+                newMilestone = { name: "30 Mins!", icon: "❤️" };
+            } else if (minutes >= 15) {
+                newMilestone = { name: "15 Mins!", icon: "👍" };
+            }
+            
+            if (newMilestone && newMilestone.name !== currentMilestone?.name) {
+                currentMilestone = newMilestone;
+                milestoneIcon.textContent = newMilestone.icon;
+                milestoneText.textContent = newMilestone.name;
+                milestone.classList.add('show');
+            }
+        }
+        
         // Update display
         function updateDisplay() {
             timeDisplay.textContent = formatTime(remainingSeconds);
             updateProgress();
+            updateProgressDots();
+            checkMilestone();
             
-            // Update status text
+            // Update status
             if (wasInterrupted) {
-                status.textContent = 'INTERRUPTED';
-                status.classList.add('interrupted');
-                hint.classList.remove('hidden');
+                statusText.textContent = 'INTERRUPTED';
+                status.className = 'status interrupted';
+                flameIcon.classList.remove('show');
                 playPauseBtn.classList.add('interrupted');
             } else if (isPaused) {
-                status.textContent = 'PAUSED';
-                status.classList.add('interrupted');
-                hint.classList.add('hidden');
+                statusText.textContent = 'PAUSED';
+                status.className = 'status interrupted';
+                flameIcon.classList.remove('show');
                 playPauseBtn.classList.add('interrupted');
-            } else {
-                status.textContent = 'FOCUSING';
-                status.classList.remove('interrupted');
-                hint.classList.add('hidden');
+            } else if (isRunning) {
+                statusText.textContent = 'FOCUSING';
+                status.className = 'status focusing';
+                flameIcon.classList.add('show');
                 playPauseBtn.classList.remove('interrupted');
+            } else {
+                statusText.textContent = 'READY';
+                status.className = 'status ready';
+                flameIcon.classList.remove('show');
+                milestone.classList.remove('show');
             }
         }
         
@@ -373,10 +629,13 @@
             isRunning = true;
             isPaused = false;
             wasInterrupted = false;
+            currentMilestone = null;
             
             presets.classList.add('hidden');
             controls.classList.remove('hidden');
-            status.classList.remove('ready');
+            
+            // Start fire animation
+            document.querySelectorAll('.fire-particle').forEach(p => p.classList.add('animate'));
             
             updateDisplay();
             runTimer();
@@ -402,11 +661,13 @@
             wasInterrupted = false;
             
             if (isPaused) {
-                status.textContent = 'PAUSED';
+                statusText.textContent = 'PAUSED';
                 playIcon.innerHTML = '<polygon points="6,4 20,12 6,20"/>';
+                document.querySelectorAll('.fire-particle').forEach(p => p.classList.remove('animate'));
             } else {
-                status.textContent = 'FOCUSING';
+                statusText.textContent = 'FOCUSING';
                 playIcon.innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+                document.querySelectorAll('.fire-particle').forEach(p => p.classList.add('animate'));
             }
             updateDisplay();
         }
@@ -418,19 +679,28 @@
             isRunning = false;
             isPaused = false;
             wasInterrupted = false;
+            currentMilestone = null;
             
             remainingSeconds = totalSeconds;
             
             presets.classList.remove('hidden');
             controls.classList.add('hidden');
-            status.classList.add('ready');
-            status.textContent = 'READY';
             
-            hint.classList.add('hidden');
+            // Stop fire animation
+            document.querySelectorAll('.fire-particle').forEach(p => p.classList.remove('animate'));
+            milestone.classList.remove('show');
+            
+            statusText.textContent = 'READY';
+            status.className = 'status ready';
             progress.classList.remove('interrupted');
             playPauseBtn.classList.remove('interrupted');
             
             playIcon.innerHTML = '<polygon points="6,4 20,12 6,20"/>';
+            
+            // Reset progress dots
+            document.querySelectorAll('.progress-dot').forEach(d => d.classList.remove('active'));
+            progressLabel.textContent = '';
+            
             updateDisplay();
         }
         
@@ -460,33 +730,23 @@
             updateStatsDisplay();
             
             // Show notification
-            notification.classList.remove('hidden');
-            setTimeout(() => notification.classList.add('hidden'), 3000);
+            notification.classList.add('show');
+            setTimeout(() => notification.classList.remove('show'), 3000);
             
             stopTimer();
         }
         
-        // Handle page visibility (app switching)
+        // Handle page visibility
         document.addEventListener('visibilitychange', () => {
             if (!isRunning || isPaused) return;
             
-            // When page becomes hidden (user switched to another app/tab)
             if (document.visibilityState === 'hidden') {
-                // Just mark as interrupted, don't actually pause
-                // The timer continues running in background
                 wasInterrupted = true;
-                updateDisplay();
-            }
-        });
-        
-        // Handle beforeunload - pause timer when leaving
-        window.addEventListener('pagehide', () => {
-            if (isRunning && !isPaused) {
-                // Pause timer when leaving the page
                 isPaused = true;
-                wasInterrupted = true;
                 clearInterval(timer);
                 timer = null;
+                document.querySelectorAll('.fire-particle').forEach(p => p.classList.remove('animate'));
+                updateDisplay();
             }
         });
         
@@ -509,7 +769,7 @@
         // Initialize
         updateStatsDisplay();
         
-        // Register Service Worker for PWA
+        // Register Service Worker
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').catch(console.error);
         }
