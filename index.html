@@ -8,7 +8,6 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Focus Timer</title>
     <link rel="manifest" href="manifest.json">
-    
     <style>
         * {
             margin: 0;
@@ -72,6 +71,10 @@
             transition: stroke-dashoffset 1s linear;
         }
         
+        .timer-circle .progress.interrupted {
+            stroke: #ff9500;
+        }
+        
         .timer-display {
             position: absolute;
             top: 50%;
@@ -98,6 +101,10 @@
         
         .status.ready {
             color: var(--text-dim);
+        }
+        
+        .status.interrupted {
+            color: #ff9500;
         }
         
         .presets {
@@ -162,6 +169,10 @@
             font-size: 28px;
         }
         
+        .btn-play.interrupted {
+            background: #ff9500;
+        }
+        
         .stats {
             display: flex;
             gap: 24px;
@@ -204,6 +215,15 @@
             z-index: 100;
         }
         
+        .hint {
+            background: rgba(255, 149, 0, 0.2);
+            color: #ff9500;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        
         @keyframes slideDown {
             from { transform: translateX(-50%) translateY(-100%); opacity: 0; }
             to { transform: translateX(-50%) translateY(0); opacity: 1; }
@@ -224,6 +244,8 @@
                 <div class="status ready" id="status">READY</div>
             </div>
         </div>
+        
+        <div class="hint hidden" id="hint">Tap play to resume</div>
         
         <div id="presets" class="presets">
             <button class="preset-btn" data-minutes="15">15 min</button>
@@ -268,6 +290,7 @@
         let totalSeconds = 25 * 60;
         let isRunning = false;
         let isPaused = false;
+        let wasInterrupted = false;
         
         // Stats (stored in localStorage)
         let stats = JSON.parse(localStorage.getItem('focusTimerStats') || '{"totalSeconds":0,"sessions":0,"streak":0,"lastDate":null}');
@@ -282,6 +305,7 @@
         const stopBtn = document.getElementById('stopBtn');
         const playIcon = document.getElementById('playIcon');
         const notification = document.getElementById('notification');
+        const hint = document.getElementById('hint');
         
         // Stats Elements
         const totalTimeEl = document.getElementById('totalTime');
@@ -309,12 +333,37 @@
             const circumference = 2 * Math.PI * 120;
             const offset = circumference * (1 - remainingSeconds / totalSeconds);
             progress.style.strokeDashoffset = offset;
+            
+            // Update color based on state
+            if (wasInterrupted) {
+                progress.classList.add('interrupted');
+            } else {
+                progress.classList.remove('interrupted');
+            }
         }
         
         // Update display
         function updateDisplay() {
             timeDisplay.textContent = formatTime(remainingSeconds);
             updateProgress();
+            
+            // Update status text
+            if (wasInterrupted) {
+                status.textContent = 'INTERRUPTED';
+                status.classList.add('interrupted');
+                hint.classList.remove('hidden');
+                playPauseBtn.classList.add('interrupted');
+            } else if (isPaused) {
+                status.textContent = 'PAUSED';
+                status.classList.add('interrupted');
+                hint.classList.add('hidden');
+                playPauseBtn.classList.add('interrupted');
+            } else {
+                status.textContent = 'FOCUSING';
+                status.classList.remove('interrupted');
+                hint.classList.add('hidden');
+                playPauseBtn.classList.remove('interrupted');
+            }
         }
         
         // Start timer
@@ -323,11 +372,11 @@
             remainingSeconds = totalSeconds;
             isRunning = true;
             isPaused = false;
+            wasInterrupted = false;
             
             presets.classList.add('hidden');
             controls.classList.remove('hidden');
             status.classList.remove('ready');
-            status.textContent = 'FOCUSING';
             
             updateDisplay();
             runTimer();
@@ -350,6 +399,7 @@
         // Toggle pause
         function togglePause() {
             isPaused = !isPaused;
+            wasInterrupted = false;
             
             if (isPaused) {
                 status.textContent = 'PAUSED';
@@ -358,6 +408,7 @@
                 status.textContent = 'FOCUSING';
                 playIcon.innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
             }
+            updateDisplay();
         }
         
         // Stop timer
@@ -366,6 +417,7 @@
             timer = null;
             isRunning = false;
             isPaused = false;
+            wasInterrupted = false;
             
             remainingSeconds = totalSeconds;
             
@@ -373,6 +425,10 @@
             controls.classList.add('hidden');
             status.classList.add('ready');
             status.textContent = 'READY';
+            
+            hint.classList.add('hidden');
+            progress.classList.remove('interrupted');
+            playPauseBtn.classList.remove('interrupted');
             
             playIcon.innerHTML = '<polygon points="6,4 20,12 6,20"/>';
             updateDisplay();
@@ -409,6 +465,30 @@
             
             stopTimer();
         }
+        
+        // Handle page visibility (app switching)
+        document.addEventListener('visibilitychange', () => {
+            if (!isRunning || isPaused) return;
+            
+            // When page becomes hidden (user switched to another app/tab)
+            if (document.visibilityState === 'hidden') {
+                // Just mark as interrupted, don't actually pause
+                // The timer continues running in background
+                wasInterrupted = true;
+                updateDisplay();
+            }
+        });
+        
+        // Handle beforeunload - pause timer when leaving
+        window.addEventListener('pagehide', () => {
+            if (isRunning && !isPaused) {
+                // Pause timer when leaving the page
+                isPaused = true;
+                wasInterrupted = true;
+                clearInterval(timer);
+                timer = null;
+            }
+        });
         
         // Event listeners
         document.querySelectorAll('.preset-btn').forEach(btn => {
